@@ -1,0 +1,62 @@
+[
+    {
+        "type" : "heading",
+        "defaultValue" : "NIGHTSCOUT DOUBLE VISION"
+    },
+    {
+        "type" : "text",
+        "defaultValue" : "Configuration page"
+    },
+    {
+        "type" : "section",
+        "items":[
+            {
+                "type":"input",
+                "messageKey":"FirstPersonName",
+                "label":"person one",
+                "description":"enter the name of the first person you would like to track (top section of the screen)"
+            },
+            {
+                "type":"input",
+                "messageKey":"FirstPersonURL",
+                "label":"URL one",
+                "description":"enter the URL to the pebble endpoint of the nightscout webapp of the first person; ie: http://*****.herokuapp.com/pebble/"
+            },
+            {
+                "type":"input",
+                "messageKey":"SecondPersonName",
+                "label":"person two",
+                "description":"enter the name of the second person you would like to track (bottom section of the screen)"
+            },
+            {
+                "type":"input",
+                "messageKey":"SecondPersonURL",
+                "label":"URL two",
+                "description":"enter the URL to the pebble endpoint of the nightscout webapp of the second person; ie: http://*****.herokuapp.com/pebble/"
+            }
+        ]
+    },
+    {
+        "type":"section",
+        "items":[
+            {
+                "type":"heading",
+                "defaultValue":"options"
+            },
+            {
+                "type":"slider",
+                "label":"refresh interval",
+                "defaultValue":"1",
+                "min":"1",
+                "max":"10",
+                "step":"1",
+                "description":"set the interval that the app will poll the endpoit for an update",
+                "messageKey":"IntervalTime"
+            }
+        ]
+    },
+    {
+        "type":"submit",
+        "defaultValue":"save"
+    }
+]

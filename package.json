@@ -1,0 +1,92 @@
+{
+  "name": "nightscout-double-vision",
+  "author": "swansswansswansswansosoft",
+  "version": "1.0.0",
+  "keywords": [
+    "pebble-app"
+  ],
+  "private": true,
+  "dependencies": {
+    "pebble-battery-bar": "^1.0.10",
+    "pebble-bluetooth-icon": "^1.0.8",
+    "pebble-clay": "^1.0.4"
+  },
+  "pebble": {
+    "displayName": "Nightscout Double Vision",
+    "capabilities": [
+      "configurable"
+    ],
+    "uuid": "b099b674-cebf-46c8-a282-38da30d16d50",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "diorite"
+    ],
+    "watchapp": {
+      "watchface": true
+    },
+    "messageKeys": {
+      "PersonID": 0,
+      "PersonName": 1,
+      "SGV": 2,
+      "Delta": 3,
+      "IOB": 4,
+      "Battery": 5,
+      "Direction": 6,
+      "MinutesAgo": 7,
+      "IntervalTime": 50
+    },
+    "resources": {
+      "media": [
+        {
+          "type": "png",
+          "name": "IMAGE_NONE",
+          "file": "images/none.png"
+        },
+        {
+          "type": "png",
+          "name": "IMAGE_DOWN45",
+          "file": "images/down45.png"
+        },
+        {
+          "type": "png",
+          "name": "IMAGE_DOWNDOWN",
+          "file": "images/downdown.png"
+        },
+        {
+          "type": "png",
+          "name": "IMAGE_DOWN",
+          "file": "images/down.png"
+        },
+        {
+          "type": "png",
+          "name": "IMAGE_FLAT",
+          "file": "images/flat.png"
+        },
+        {
+          "type": "png",
+          "name": "IMAGE_UP45",
+          "file": "images/up45.png"
+        },
+        {
+          "type": "png",
+          "name": "IMAGE_UPUP",
+          "file": "images/upup.png"
+        },
+        {
+          "type": "png",
+          "name": "IMAGE_UP",
+          "file": "images/up.png"
+        },
+        {
+          "menuIcon": true,
+          "type": "png",
+          "name": "IMAGE_MENU_ICON",
+          "file": "images/logo.png"
+        }
+      ]
+    }
+  }
+}
