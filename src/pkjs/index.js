@@ -5,10 +5,26 @@ var clayConfig = require('./config.json');
 var clay = new Clay(clayConfig, null, { autoHandleEvents: false });
 
 //declare initial values or lackthereof
-var storedSettings = null;
 var personOneData;
 var personTwoData;
+
+//holding objects for settings
+var storedSettings = null;
 var fetchInterval = 30000; 
+
+// localStorage.clear();
+
+//array of alert objects; first item is person one and second is person two
+lastAlerts = [
+    {
+        low: new Date("1-1-1990").getTime(),
+        high: new Date("1-1-1990").getTime()
+    },
+    {
+        low: new Date("1-1-1990").getTime(),
+        high: new Date("1-1-1990").getTime()
+    }
+];
 
 //because we overrid the default behavior of clay we must now tell it to open the config page
 Pebble.addEventListener('showConfiguration', function(e) {
@@ -17,14 +33,17 @@ Pebble.addEventListener('showConfiguration', function(e) {
 
 //when the config page is closed...
 Pebble.addEventListener('webviewclosed', function(e) {
+
     if (e && !e.response) {
         return;
     }
+
     //get settings from response object
     storedSettings = clay.getSettings(e.response, false);
     //save the settings directly to local storage.
     localStorage.setItem("storedSettings", JSON.stringify(storedSettings));
     // console.log(JSON.stringify(storedSettings));
+
     if (storedSettings.FirstPersonName.value && storedSettings.FirstPersonName.value != "") {
         // console.log('sending app message');
         //if the name values are not null or blank, send them to the pebble
@@ -33,6 +52,7 @@ Pebble.addEventListener('webviewclosed', function(e) {
             "PersonName": storedSettings.FirstPersonName.value
         });
     }
+
     if (storedSettings.SecondPersonName.value && storedSettings.SecondPersonName.value != "") {
         //short 1000ms timeout to avoid confusing AppMessage on Pebble (there's probably a smarter way to do this)
         setTimeout(()=>{
@@ -43,7 +63,8 @@ Pebble.addEventListener('webviewclosed', function(e) {
             });
         },1000)
     }
-    //call for data
+
+
 });
 
 //this function is called when the watchface is ready
@@ -51,10 +72,15 @@ Pebble.addEventListener("ready",
     function(e) {
         //get persons data from local storage if set. If not set, make dummy object that can be compared later.
         var pOneData = JSON.parse(localStorage.getItem("personOneData"));
-        if (pOneData){personOneData = pOneData} else {personOneData={bgs:[{datetime:""}]}}
+        if (pOneData){personOneData = pOneData} else {personOneData={bgs:[{datetime:""}]}};
         
         var pTwoData = JSON.parse(localStorage.getItem("personTwoData"));
-        if (pTwoData){personTwoData = pTwoData} else {personTwoData={bgs:[{datetime:""}]}}
+        if (pTwoData){personTwoData = pTwoData} else {personTwoData={bgs:[{datetime:""}]}};
+
+        lAlert = JSON.parse(localStorage.getItem("lastAlerts"));
+        if(lAlert){
+            lastAlerts = lAlert;
+        }
 
         //get settings from local storage
         var settings = JSON.parse(localStorage.getItem("storedSettings"));
@@ -63,10 +89,9 @@ Pebble.addEventListener("ready",
         if (settings) {
             // console.log('found settings');
             storedSettings = settings;
-            //define fetch inteval based on stored settings
-            fetchInterval = (storedSettings.IntervalTime.value * 60 * 1000);
             //start fetchLoop
             fetchLoop();
+
         } else {
             // console.log('no settings');
             //show notification stating that settings must be configured. Should only ever happen once.
@@ -95,14 +120,17 @@ function fetchNightscoutData(id, personData, url){
         if (req.readyState == 4) {
           // 200 - HTTP OK
             if(req.status == 200) {
+
                 //get response text from XMLHttpRequest / this repsonse object is the JSON blob returned by the /pebble endpoint from the nightscout herokuapp
                 //example object returned: {"status":[{"now":1583651712777}],"bgs":[{"sgv":"287","trend":3,"direction":"FortyFiveUp","datetime":1583651514273,"filtered":370454.8800221163,"unfiltered":383020.389040932,"noise":1,"bgdelta":6,"battery":"34","iob":"2.62","bwp":"1.22","bwpo":156,"cob":0}],"cals":[{"slope":912.6609622111511,"intercept":157029.0133658369,"scale":1}]}
                 var response = JSON.parse(req.responseText);
                 // console.log(JSON.stringify(response));
+
                 //check to see if this data is old. If it's old... do nothing.
                 if (response.bgs[0].datetime == personData.bgs[0].datetime) {
                     // console.log('did not send appmessage');
                     return
+
                 } else {
                     //if it's new, construct an appmessage using the appropriate keys defined in package.json and in nightscout-double-vision.h
                     //minutes ago is simple math that subtracts the datetime from now and rounds to nearest whole minute
@@ -115,9 +143,13 @@ function fetchNightscoutData(id, personData, url){
                         "IOB": response.bgs[0].iob,
                         "Battery": "%"+response.bgs[0].battery,
                         "Direction": directionStringToInt(response.bgs[0].direction),
-                        "MinutesAgo": Math.round((response.status[0].now - response.bgs[0].datetime) / 1000 / 60)
+                        "MinutesAgo": Math.round((response.status[0].now - response.bgs[0].datetime) / 1000 / 60),
+                        "SendAlert": makeAlert(id, response.bgs[0].sgv),
+                        "RespectQuietTime": (storedSettings.RespectQuietTime.value ? 1: 0)
                     };
+
                     // console.log(JSON.stringify(message));
+
                     //send the app message and use a success callback. On success, store the message to localStorage so that it can be compared on the next loop.
                     Pebble.sendAppMessage(message,()=>{
                         if (id === 0){
@@ -137,6 +169,36 @@ function fetchNightscoutData(id, personData, url){
     }
     //send the request!
     req.send();
+}
+
+function makeAlert(id, sgv){
+
+    if (!storedSettings.EnableAlerts.value) {
+        // console.log ('alerts disabled');
+        return 0;
+
+    } else {
+
+        var integer = 0;
+    
+        if (sgv < storedSettings.LowAlertValue.value && (new Date().getTime() - lastAlerts[id].low) > storedSettings.LowSnoozeTimeout.value * 60 * 1000){
+            integer = Number(storedSettings.LowVibePattern.value);
+            lastAlerts[id].low = new Date().getTime();
+            // console.log('met low criteria');
+
+        } else if (sgv > storedSettings.HighAlertValue.value && (new Date().getTime() - lastAlerts[id].high) > storedSettings.HighSnoozeTimeout.value * 60 * 1000){
+            integer = Number(storedSettings.HighVibePattern.value);
+            lastAlerts[id].high = new Date().getTime();
+            // console.log('met high criteria');
+
+        }
+        // console.log(JSON.stringify(lastAlerts));
+        localStorage.setItem("lastAlerts", JSON.stringify(lastAlerts));
+    
+        return integer;
+
+    }
+
 }
 
 //utility functions

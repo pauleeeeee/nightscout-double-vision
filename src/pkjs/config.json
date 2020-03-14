@@ -11,6 +11,10 @@
         "type" : "section",
         "items":[
             {
+                "type":"heading",
+                "defaultValue":"people"
+            },
+            {
                 "type":"input",
                 "messageKey":"FirstPersonName",
                 "label":"person one",
@@ -41,17 +45,109 @@
         "items":[
             {
                 "type":"heading",
-                "defaultValue":"options"
+                "defaultValue":"alerts"
+            },
+            {
+                "type": "toggle",
+                "messageKey": "EnableAlerts",
+                "label": "Enable alerts?",
+                "description": "check this box to enable high and low alerts",
+                "defaultValue": false
+            },
+            {
+                "type": "toggle",
+                "messageKey": "RespectQuietTime",
+                "label": "Respect Pebble's 'Quiet Time'",
+                "description": "alerts are supressed when Quiet Time is active on the Pebble",
+                "defaultValue": true
+            },
+            {
+                "type":"heading",
+                "defaultValue":"low"
             },
             {
                 "type":"slider",
-                "label":"refresh interval",
-                "defaultValue":"1",
-                "min":"1",
-                "max":"10",
-                "step":"1",
-                "description":"set the interval that the app will poll the endpoit for an update",
-                "messageKey":"IntervalTime"
+                "label":"low BG value",
+                "defaultValue":"75",
+                "min":"50",
+                "max":"200",
+                "step":"5",
+                "description":"readings lower than this value will alert you",
+                "messageKey":"LowAlertValue"
+            },
+            {
+                "type": "select",
+                "messageKey": "LowVibePattern",
+                "defaultValue": "short",
+                "label": "low alert vibration pattern",
+                "options": [
+                  { 
+                    "label": "short", 
+                    "value": "1" 
+                  },
+                  { 
+                    "label": "long",
+                    "value": "2" 
+                  },
+                  { 
+                    "label": "double",
+                    "value": "3" 
+                  }
+                ]
+            },
+            {
+                "type":"slider",
+                "label":"low BG alert snooze",
+                "defaultValue":"15",
+                "min":"0",
+                "max":"60",
+                "step":"5",
+                "description":"number of minutes that low BG alerts will be surpressed after the last alert",
+                "messageKey":"LowSnoozeTimeout"
+            },
+            {
+                "type":"heading",
+                "defaultValue":"high"
+            },
+            {
+                "type":"slider",
+                "label":"high BG value",
+                "defaultValue":"250",
+                "min":"100",
+                "max":"300",
+                "step":"5",
+                "description":"readings higher than this value will alert you",
+                "messageKey":"HighAlertValue"
+            },
+            {
+                "type":"slider",
+                "label":"high BG alert snooze",
+                "defaultValue":"30",
+                "min":"0",
+                "max":"60",
+                "step":"5",
+                "description":"number of minutes that high BG alerts will be surpressed after the last alert",
+                "messageKey":"HighSnoozeTimeout"
+            },
+            {
+                "type": "select",
+                "messageKey": "HighVibePattern",
+                "defaultValue": "short",
+                "label": "high alert vibration pattern",
+                "options": [
+                  { 
+                    "label": "short", 
+                    "value": "1" 
+                  },
+                  { 
+                    "label": "long",
+                    "value": "2" 
+                  },
+                  { 
+                    "label": "double",
+                    "value": "3" 
+                  }
+                ]
             }
         ]
     },
