@@ -11,6 +11,13 @@
 #define Direction 6
 #define MinutesAgo 7
 #define IntervalTime 50
+#define EnableAlerts 51
+#define RespectQuietTime 52
+#define LowAlertValue 53
+#define HighAlertValue 54
+#define LowSnoozeTimeout 55
+#define HighSnoozeTimeout 56
+#define SendAlert 60
 
 //declare reousrce IDs in this array for easy access when drawing bitmap arrows
 static const uint32_t ICONS[] = {

@@ -18,6 +18,7 @@ static GBitmap *s_p_two_icon_bitmap = NULL;
 static BitmapLayer *s_p_one_icon_layer, *s_p_two_icon_layer;
 static AppTimer *timer;
 static int CurrentPerson = 0;
+static int s_respect_quiet_time = 0;
 
 
 static void updateTimeAgo(int person_id){
@@ -58,6 +59,28 @@ static void update_time() {
 
 }
 
+static void sendAlert(int alert) {
+  // APP_LOG(APP_LOG_LEVEL_DEBUG, "switching alert %d", alert);
+  switch(alert){
+    case 0:
+      // APP_LOG(APP_LOG_LEVEL_DEBUG, "no alert %d", alert);
+
+      break;
+    case 1:
+      // APP_LOG(APP_LOG_LEVEL_DEBUG, "short vibes %d", alert);
+      vibes_short_pulse();
+      break;
+    case 2:
+      //vibe 1
+      vibes_long_pulse();
+      break;
+    case 3:
+      //vibe 1
+      vibes_double_pulse();
+      break;
+  }
+}
+
 //this function is called every time the pebble ticks a minute
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_time();
@@ -75,12 +98,16 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
   Tuple *battery_tuple = dict_find (iter, Battery);
   Tuple *direction_tuple = dict_find (iter, Direction);
   Tuple *minutes_ago_tuple = dict_find (iter, MinutesAgo);
+  Tuple *respect_quiet_time_tuple = dict_find (iter, RespectQuietTime);
+  Tuple *send_alert_tuple = dict_find(iter, SendAlert);
 
   //assign current person to an int. It's important to pipe data from within this function to stable, outside variables. Otherwise data could be lost as a new appmessage comes in
   if (person_id_tuple) {
     CurrentPerson = person_id_tuple->value->int32;
   }
 
+
+  //update values of the watchface. I think making a People array that holds all this stuff would make way more sense.
   if (CurrentPerson == 0){
     if (person_name_tuple) {
       //copy value to outside variable
@@ -137,6 +164,8 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
       updateTimeAgo(CurrentPerson);
     }
 
+
+
   } else if (CurrentPerson == 1){
   
     if (person_name_tuple) {
@@ -182,6 +211,26 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
       s_p_two_ago_int = minutes_ago_tuple->value->int32;
       persist_write_int(17,s_p_two_ago_int);
       updateTimeAgo(CurrentPerson);
+    }
+  }
+
+
+  //alerts
+  if (respect_quiet_time_tuple) {
+    s_respect_quiet_time = respect_quiet_time_tuple->value->int32;
+    persist_write_int(52, s_respect_quiet_time);
+  }
+
+  if (send_alert_tuple) {
+
+    int alert = send_alert_tuple->value->int32;
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "alert received in tuple %d", alert);
+    if (quiet_time_is_active() && s_respect_quiet_time) { 
+          // APP_LOG(APP_LOG_LEVEL_DEBUG, "alert suppressed %d", alert);       
+      return;
+    } else {
+      // APP_LOG(APP_LOG_LEVEL_DEBUG, "sending alert to function %d", alert);
+      sendAlert(alert);
     }
   }
 
@@ -231,6 +280,10 @@ static void prv_window_load(Window *window) {
   //void bluetooth_set_colors(GColor connected_circle, GColor connected_icon, GColor disconnected_circle, GColor disconnected_icon);
   bluetooth_set_colors(GColorBlack, GColorWhite, GColorDarkGray, GColorClear);
   layer_add_child(window_layer, s_bluetooth_layer);
+
+  //recall respect quiet time value; 0 or 1;
+  s_respect_quiet_time = persist_read_int(52);
+
 
   //***********************************
   //******* PERSON ONE ****************
@@ -364,6 +417,7 @@ static void prv_window_load(Window *window) {
 
   //add person holding layer to root window
   layer_add_child(window_layer, s_person_one_holder_layer);
+
 
 
 
