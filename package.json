@@ -36,7 +36,14 @@
       "Battery": 5,
       "Direction": 6,
       "MinutesAgo": 7,
-      "IntervalTime": 50
+      "IntervalTime": 50,
+      "EnableAlerts": 51,
+      "RespectQuietTime": 52,
+      "LowAlertValue": 53,
+      "HighAlertValue": 54,
+      "LowSnoozeTimeout": 55,
+      "HighSnoozeTimeout": 56,
+      "SendAlert": 60
     },
     "resources": {
       "media": [
