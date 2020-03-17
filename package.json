@@ -7,6 +7,7 @@
   ],
   "private": true,
   "dependencies": {
+    "message-queue-pebble": "^1.0.0",
     "pebble-battery-bar": "^1.0.10",
     "pebble-bluetooth-icon": "^1.0.8",
     "pebble-clay": "^1.0.4"
@@ -36,6 +37,12 @@
       "Battery": 5,
       "Direction": 6,
       "MinutesAgo": 7,
+      "GraphXPoint": 10,
+      "GraphYPoint": 11,
+      "GraphXPoints": 110,
+      "GraphYPoints": 111,
+      "GraphStartStop": 12,
+      "GetGraphs": 13,
       "IntervalTime": 50,
       "EnableAlerts": 51,
       "RespectQuietTime": 52,
