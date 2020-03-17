@@ -92,6 +92,22 @@
                   { 
                     "label": "double",
                     "value": "3" 
+                  },
+                  { 
+                    "label": "tripple",
+                    "value": "4" 
+                  },
+                  { 
+                    "label": "quad",
+                    "value": "5" 
+                  },
+                  {
+                      "label": "S.O.S.",
+                      "value": "6"
+                  },
+                  {
+                      "label": "bum bum ba-da-bumm",
+                      "value": "7"
                   }
                 ]
             },
@@ -143,9 +159,25 @@
                     "label": "long",
                     "value": "2" 
                   },
-                  { 
+                  {
                     "label": "double",
                     "value": "3" 
+                  },
+                  { 
+                    "label": "tripple",
+                    "value": "4" 
+                  },
+                  { 
+                    "label": "quad",
+                    "value": "5" 
+                  },
+                  {
+                      "label": "S.O.S.",
+                      "value": "6"
+                  },
+                  {
+                      "label": "bum bum ba-da-bumm",
+                      "value": "7"
                   }
                 ]
             }

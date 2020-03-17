@@ -4,6 +4,9 @@ var clayConfig = require('./config.json');
 //override the handleEvents feature in Clay. This way we can intercept values here in JS and then figure out what to do with them
 var clay = new Clay(clayConfig, null, { autoHandleEvents: false });
 
+//include MessageQueue system
+var MessageQueue = require('message-queue-pebble');
+
 //declare initial values or lackthereof
 var personOneData;
 var personTwoData;
@@ -70,6 +73,7 @@ Pebble.addEventListener('webviewclosed', function(e) {
 //this function is called when the watchface is ready
 Pebble.addEventListener("ready",
     function(e) {
+        // setTimeout(()=>{fetchGraphData(0," ")}, 5000);
         //get persons data from local storage if set. If not set, make dummy object that can be compared later.
         var pOneData = JSON.parse(localStorage.getItem("personOneData"));
         if (pOneData){personOneData = pOneData} else {personOneData={bgs:[{datetime:""}]}};
@@ -101,6 +105,15 @@ Pebble.addEventListener("ready",
     }
 );
 
+//listen for the watch to call for graphs after being tapped
+Pebble.addEventListener('appmessage', function(e) {
+    var getGraphs = e.payload["GetGraphs"];
+    if (getGraphs) {
+        fetchGraphData(0,storedSettings.FirstPersonURL.value);
+        setTimeout(()=>{fetchGraphData(1,storedSettings.SecondPersonURL.value);},1500);
+    }
+});
+
 
 function fetchLoop(){
     //fetch data for person 1
@@ -112,10 +125,62 @@ function fetchLoop(){
     setTimeout(()=>{fetchLoop()},fetchInterval);
 }
 
+function fetchGraphData(id, url){
+    //open request
+    var req = new XMLHttpRequest();
+    req.open('GET', url + "/api/v1/entries.json?count=150", true);
+    req.onload = function(e) {
+        if (req.readyState == 4) {
+          // 200 - HTTP OK
+            if(req.status == 200) {
+                var entries = JSON.parse(req.responseText);
+                entries.reverse();
+                var graphData = [];
+                for (let entry of entries) {
+                    graphData.push({
+                        time: Math.round(((entry.date - entries[0].date) / 1000 / 60)),
+                        sgv: 300-entry.sgv
+                    });
+                }
+                
+                var sampled = largestTriangleThreeBuckets(graphData, 20, "time", "sgv");
+
+                var xscale = 144 / sampled[sampled.length-1].time;
+
+                var yscale = 72 / 280;
+
+
+                let xbuffer = new ArrayBuffer(40);
+                let xview16 = new Uint16Array(xbuffer);
+                let ybuffer = new ArrayBuffer(40);
+                let yview16 = new Uint16Array(ybuffer);
+
+                for (let i = 0; i < 20; i++) {
+                    xview16[i] = Math.round(sampled[i].time * xscale);
+                    yview16[i] = Math.round(sampled[i].sgv * yscale);
+                }
+
+                let xview8 = new Uint8Array(xbuffer);
+                let yview8 = new Uint8Array(ybuffer);
+
+                let sendingObject = {
+                    "PersonID": id,
+                    "GraphXPoints": Array.from(xview8),
+                    "GraphYPoints": Array.from(yview8)
+                };
+
+                MessageQueue.sendAppMessage(sendingObject);
+
+            }
+        }
+    }
+    req.send();
+}
+
 function fetchNightscoutData(id, personData, url){
     //open request
     var req = new XMLHttpRequest();
-    req.open('GET', url, true);
+    req.open('GET', url + "/pebble", true);
     req.onload = function(e) {
         if (req.readyState == 4) {
           // 200 - HTTP OK
@@ -240,3 +305,76 @@ function directionStringToInt(direction) {
     }
 };
 
+
+function largestTriangleThreeBuckets(data, threshold, xAccessor, yAccessor) {
+
+    var floor = Math.floor,
+      abs = Math.abs;
+
+    var daraLength = data.length;
+    if (threshold >= daraLength || threshold === 0) {
+      return data; // Nothing to do
+    }
+
+    var sampled = [],
+      sampledIndex = 0;
+
+    // Bucket size. Leave room for start and end data points
+    var every = (daraLength - 2) / (threshold - 2);
+
+    var a = 0,  // Initially a is the first point in the triangle
+      maxAreaPoint,
+      maxArea,
+      area,
+      nextA;
+
+    sampled[ sampledIndex++ ] = data[ a ]; // Always add the first point
+
+    for (var i = 0; i < threshold - 2; i++) {
+
+      // Calculate point average for next bucket (containing c)
+      var avgX = 0,
+        avgY = 0,
+        avgRangeStart  = floor( ( i + 1 ) * every ) + 1,
+        avgRangeEnd    = floor( ( i + 2 ) * every ) + 1;
+      avgRangeEnd = avgRangeEnd < daraLength ? avgRangeEnd : daraLength;
+
+      var avgRangeLength = avgRangeEnd - avgRangeStart;
+
+      for ( ; avgRangeStart<avgRangeEnd; avgRangeStart++ ) {
+        avgX += data[ avgRangeStart ][ xAccessor ] * 1; // * 1 enforces Number (value may be Date)
+        avgY += data[ avgRangeStart ][ yAccessor ] * 1;
+      }
+      avgX /= avgRangeLength;
+      avgY /= avgRangeLength;
+
+      // Get the range for this bucket
+      var rangeOffs = floor( (i + 0) * every ) + 1,
+        rangeTo   = floor( (i + 1) * every ) + 1;
+
+      // Point a
+      var pointAX = data[ a ][ xAccessor ] * 1, // enforce Number (value may be Date)
+        pointAY = data[ a ][ yAccessor ] * 1;
+
+      maxArea = area = -1;
+
+      for ( ; rangeOffs < rangeTo; rangeOffs++ ) {
+        // Calculate triangle area over three buckets
+        area = abs( ( pointAX - avgX ) * ( data[ rangeOffs ][ yAccessor ] - pointAY ) -
+              ( pointAX - data[ rangeOffs ][ xAccessor ] ) * ( avgY - pointAY )
+              ) * 0.5;
+        if ( area > maxArea ) {
+          maxArea = area;
+          maxAreaPoint = data[ rangeOffs ];
+          nextA = rangeOffs; // Next a is this b
+        }
+      }
+
+      sampled[ sampledIndex++ ] = maxAreaPoint; // Pick this point from the bucket
+      a = nextA; // This a is the next a (chosen b)
+    }
+
+    sampled[ sampledIndex++ ] = data[ daraLength - 1 ]; // Always add last
+
+    return sampled;
+  }
