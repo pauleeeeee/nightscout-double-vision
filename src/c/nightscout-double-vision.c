@@ -6,7 +6,7 @@
 static Window *s_window;
 static BluetoothLayer *s_bluetooth_layer;
 static BatteryBarLayer *s_battery_layer;
-static Layer *s_person_one_holder_layer, *s_person_two_holder_layer;
+static Layer *s_person_one_holder_layer, *s_person_two_holder_layer, *s_person_one_graph_layer, *s_person_two_graph_layer;
 static TextLayer *s_time_layer, *s_background_layer;
 static TextLayer *s_p_one_name_text_layer, *s_p_one_sgv_text_layer, *s_p_one_delta_text_layer, *s_p_one_time_ago_text_layer, *s_p_one_iob_text_layer, *s_p_one_battery_text_layer;
 static TextLayer *s_p_two_name_text_layer, *s_p_two_sgv_text_layer, *s_p_two_delta_text_layer, *s_p_two_time_ago_text_layer, *s_p_two_iob_text_layer, *s_p_two_battery_text_layer;
@@ -16,9 +16,19 @@ static int s_p_one_ago_int, s_p_two_ago_int;
 static GBitmap *s_p_one_icon_bitmap = NULL;
 static GBitmap *s_p_two_icon_bitmap = NULL;
 static BitmapLayer *s_p_one_icon_layer, *s_p_two_icon_layer;
-static AppTimer *timer;
 static int CurrentPerson = 0;
 static int s_respect_quiet_time = 0;
+
+//person one graph stuff
+static bool s_person_one_graph_should_draw = false;
+static uint16_t s_person_one_x_points[20];
+static uint16_t s_person_one_y_points[20];
+
+//person two graph stuff
+static bool s_person_two_graph_should_draw = false;
+static uint16_t s_person_two_x_points[20];
+static uint16_t s_person_two_y_points[20];
+
 
 
 static void updateTimeAgo(int person_id){
@@ -59,25 +69,94 @@ static void update_time() {
 
 }
 
+
+static const uint32_t const tripple_segments[] = { 100, 100, 100, 100, 100, 100 };
+VibePattern tripple = {
+  .durations = tripple_segments,
+  .num_segments = ARRAY_LENGTH(tripple_segments),
+};
+
+static const uint32_t const quad_segments[] = { 100, 100, 100, 100, 100, 100, 100, 100 };
+VibePattern quad = {
+  .durations = quad_segments,
+  .num_segments = ARRAY_LENGTH(quad_segments),
+};
+
+static const uint32_t const sos_segments[] = { 100,30,100,30,100,200,200,30,200,30,200,200,100,30,100,30,100 };
+VibePattern sos = {
+  .durations = sos_segments,
+  .num_segments = ARRAY_LENGTH(sos_segments),
+};
+
+static const uint32_t const bum_segments[] = { 150,150,150,150,75,75,150,150,150,150,450 };
+VibePattern bum = {
+  .durations = bum_segments,
+  .num_segments = ARRAY_LENGTH(bum_segments),
+};
+
 static void sendAlert(int alert) {
-  // APP_LOG(APP_LOG_LEVEL_DEBUG, "switching alert %d", alert);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "switching alert %d", alert);
   switch(alert){
     case 0:
       // APP_LOG(APP_LOG_LEVEL_DEBUG, "no alert %d", alert);
-
       break;
     case 1:
       // APP_LOG(APP_LOG_LEVEL_DEBUG, "short vibes %d", alert);
       vibes_short_pulse();
       break;
     case 2:
-      //vibe 1
       vibes_long_pulse();
       break;
     case 3:
-      //vibe 1
       vibes_double_pulse();
       break;
+    case 4:
+      vibes_enqueue_custom_pattern(tripple);
+      break;
+    case 5:
+      vibes_enqueue_custom_pattern(quad);
+      break;
+    case 6:
+      vibes_enqueue_custom_pattern(sos);
+      break;
+    case 7:
+      vibes_enqueue_custom_pattern(bum);
+      break;
+  }
+}
+
+static int tap_count = 0;
+// static char display_tap_count_text[8];
+// static TextLayer *s_tap_count_layer;
+
+// static AppTimer *timer;
+
+static void tap_timer_callback(){
+  tap_count = 0;
+  // snprintf(display_tap_count_text, sizeof(display_tap_count_text), "%d", tap_count);
+  // text_layer_set_text(s_tap_count_layer, display_tap_count_text);
+}
+
+// handle accel event
+static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
+  if (axis == ACCEL_AXIS_Z){
+    if(tap_count == 0) {
+      // Schedule the timer
+      app_timer_register(1200, tap_timer_callback, NULL);
+    }
+    tap_count++;
+    // snprintf(display_tap_count_text, sizeof(display_tap_count_text), "%d", tap_count);
+    // text_layer_set_text(s_tap_count_layer, display_tap_count_text);
+
+    if(tap_count == 3){
+      tap_count = 0;
+      vibes_short_pulse();
+      int ok = 1;
+      DictionaryIterator *iter;
+      app_message_outbox_begin(&iter);
+      dict_write_int(iter, GetGraphs, &ok, sizeof(int), false);
+      app_message_outbox_send();
+    }
   }
 }
 
@@ -85,6 +164,17 @@ static void sendAlert(int alert) {
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_time();
 }
+
+static void person_one_graph_stop_draw_timer_callback(){
+  s_person_one_graph_should_draw = false;
+  layer_mark_dirty(s_person_one_graph_layer);
+}
+
+static void person_two_graph_stop_draw_timer_callback(){
+  s_person_two_graph_should_draw = false;
+  layer_mark_dirty(s_person_two_graph_layer);
+}
+
 
 //function that receives AppMessages from the JS component
 static void in_received_handler(DictionaryIterator *iter, void *context) {
@@ -100,15 +190,21 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
   Tuple *minutes_ago_tuple = dict_find (iter, MinutesAgo);
   Tuple *respect_quiet_time_tuple = dict_find (iter, RespectQuietTime);
   Tuple *send_alert_tuple = dict_find(iter, SendAlert);
+  // Tuple *graph_x_point_tuple = dict_find(iter, GraphXPoint);
+  // Tuple *graph_y_point_tuple = dict_find(iter, GraphYPoint);
+  Tuple *graph_x_points_tuple = dict_find(iter, GraphXPoints);
+  Tuple *graph_y_points_tuple = dict_find(iter, GraphYPoints);
+  // Tuple *graph_start_stop_tuple = dict_find(iter, GraphStartStop);
 
   //assign current person to an int. It's important to pipe data from within this function to stable, outside variables. Otherwise data could be lost as a new appmessage comes in
   if (person_id_tuple) {
     CurrentPerson = person_id_tuple->value->int32;
   }
 
-
   //update values of the watchface. I think making a People array that holds all this stuff would make way more sense.
   if (CurrentPerson == 0){
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "receiving data for person %d", 0);
+
     if (person_name_tuple) {
       //copy value to outside variable
       strncpy(s_p_one_name_text, person_name_tuple->value->cstring, sizeof(s_p_one_name_text));
@@ -164,10 +260,21 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
       updateTimeAgo(CurrentPerson);
     }
 
+    if (graph_x_points_tuple){
+      memcpy(s_person_one_x_points, graph_x_points_tuple->value->data, 40);
+    }
+
+    if (graph_y_points_tuple){
+      memcpy(s_person_one_y_points, graph_y_points_tuple->value->data, 40);
+      s_person_one_graph_should_draw = true;
+      layer_mark_dirty(s_person_one_graph_layer);
+      app_timer_register(15000, person_one_graph_stop_draw_timer_callback, NULL);
+    }
 
 
   } else if (CurrentPerson == 1){
-  
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "receiving data for person %d", 1);
+
     if (person_name_tuple) {
       strncpy(s_p_two_name_text, person_name_tuple->value->cstring, sizeof(s_p_two_name_text));
       persist_write_string(11, s_p_two_name_text);
@@ -212,6 +319,19 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
       persist_write_int(17,s_p_two_ago_int);
       updateTimeAgo(CurrentPerson);
     }
+
+    if (graph_x_points_tuple){
+      memcpy(s_person_two_x_points, graph_x_points_tuple->value->data, 40);
+    }
+
+    if (graph_y_points_tuple){
+      memcpy(s_person_two_y_points, graph_y_points_tuple->value->data, 40);
+      s_person_two_graph_should_draw = true;
+      layer_mark_dirty(s_person_two_graph_layer);
+      app_timer_register(15000, person_two_graph_stop_draw_timer_callback, NULL);
+
+    }
+
   }
 
 
@@ -241,14 +361,70 @@ static void in_dropped_handler(AppMessageResult reason, void *context){
   //handle failed message - probably won't happen
 }
 
-//this function draws the two white rectangles for each holder layer
-static void person_update_proc(Layer *layer, GContext *ctx) {
+static void person_one_draw_graph_update_proc(Layer *layer, GContext *ctx){
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "graphing data for person %d", 0);
+
+  graphics_context_set_stroke_color(ctx, GColorDarkGray);
+  graphics_context_set_stroke_width(ctx, 3);
+
+  if (s_person_one_graph_should_draw){
+    for (int i = 0; i < 20; i++){
+      if (i < 19){
+        graphics_draw_line(ctx, GPoint(s_person_one_x_points[i], s_person_one_y_points[i]), GPoint(s_person_one_x_points[i+1], s_person_one_y_points[i+1]));
+      }
+    }
+  }
+
+}
+
+static void person_two_draw_graph_update_proc(Layer *layer, GContext *ctx){
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "graphing data for person %d", 1);
+
+  graphics_context_set_stroke_color(ctx, GColorDarkGray);
+  graphics_context_set_stroke_width(ctx, 3);
+
+  if (s_person_two_graph_should_draw){
+    for (int i = 0; i < 20; i++){
+      if (i < 19){
+        graphics_draw_line(ctx, GPoint(s_person_two_x_points[i], s_person_two_y_points[i]), GPoint(s_person_two_x_points[i+1], s_person_two_y_points[i+1]));
+      }
+    }
+  }
+
+}
+
+//draws the two white rectangles for each holder layer and the graph
+static void person_one_update_proc(Layer *layer, GContext *ctx) {
   //set fill color to white
   graphics_context_set_fill_color(ctx, GColorWhite);
   //define bounds of the rectangle which is passed through from the update_proc assignment
   GRect rectangle = layer_get_bounds(layer);
   //create filled rectangle, rounding all corners with 5px radius
   graphics_fill_rect(ctx, rectangle, 5, GCornersAll);
+
+  if (s_p_one_ago_int > 30){
+    graphics_context_set_stroke_color(ctx, GColorBlack);
+    graphics_context_set_stroke_width(ctx, 3);
+    graphics_draw_line(ctx,GPoint(2,36), GPoint(65, 36));
+  }
+
+}
+
+static void person_two_update_proc(Layer *layer, GContext *ctx) {
+  //set fill color to white
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  //define bounds of the rectangle which is passed through from the update_proc assignment
+  GRect rectangle = layer_get_bounds(layer);
+  //create filled rectangle, rounding all corners with 5px radius
+  graphics_fill_rect(ctx, rectangle, 5, GCornersAll);
+
+    if (s_p_two_ago_int > 30){
+    graphics_context_set_stroke_color(ctx, GColorBlack);
+    graphics_context_set_stroke_width(ctx, 3);
+    graphics_draw_line(ctx,GPoint(2,36), GPoint(65, 36));
+  }
+
+
 }
 
 //main jam that draws everything
@@ -264,6 +440,15 @@ static void prv_window_load(Window *window) {
   text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
+  
+  // //create tap count testing layer
+  // s_tap_count_layer = text_layer_create(GRect(0,(bounds.size.h/2)-12,bounds.size.w,24));
+  // text_layer_set_background_color(s_tap_count_layer, GColorBlack);
+  // text_layer_set_text(s_tap_count_layer, "0");
+  // text_layer_set_text_color(s_tap_count_layer, GColorWhite);
+  // text_layer_set_font(s_tap_count_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  // text_layer_set_text_alignment(s_tap_count_layer, GTextAlignmentCenter);
+  // layer_add_child(window_layer, text_layer_get_layer(s_tap_count_layer));
 
   //create battery bar
   s_battery_layer = battery_bar_layer_create();
@@ -292,7 +477,7 @@ static void prv_window_load(Window *window) {
   //build holding layer
   GRect person_one_holder_bounds = GRect(0,0,bounds.size.w,(bounds.size.h/2)-12);
   s_person_one_holder_layer = layer_create(person_one_holder_bounds);
-  layer_set_update_proc(s_person_one_holder_layer, person_update_proc);
+  layer_set_update_proc(s_person_one_holder_layer, person_one_update_proc);
 
   //add directional icon first
   //create layer which will hold the bitmap
@@ -418,7 +603,10 @@ static void prv_window_load(Window *window) {
   //add person holding layer to root window
   layer_add_child(window_layer, s_person_one_holder_layer);
 
-
+ //build clear graph layer
+  s_person_one_graph_layer = layer_create(person_one_holder_bounds);
+  layer_set_update_proc(s_person_one_graph_layer, person_one_draw_graph_update_proc);
+	layer_add_child(window_layer, s_person_one_graph_layer);
 
 
   //***********************************
@@ -428,7 +616,7 @@ static void prv_window_load(Window *window) {
   //build holding layer
   GRect person_two_holder_bounds = GRect(0,(bounds.size.h/2)+12,bounds.size.w,(bounds.size.h/2)-12);
   s_person_two_holder_layer = layer_create(person_two_holder_bounds);
-  layer_set_update_proc(s_person_two_holder_layer, person_update_proc);
+  layer_set_update_proc(s_person_two_holder_layer, person_two_update_proc);
 
   //add directional icon first
   s_p_two_icon_layer = bitmap_layer_create(GRect((person_two_holder_bounds.size.w/2)+30, 20, 30, 30));
@@ -517,6 +705,7 @@ static void prv_window_load(Window *window) {
 	text_layer_set_background_color(s_p_two_battery_text_layer, GColorClear);
 	text_layer_set_font(s_p_two_battery_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	text_layer_set_text_alignment(s_p_two_battery_text_layer, GTextAlignmentLeft);
+
   //read battery from memory
   if(persist_exists(15)){
     persist_read_string(15, s_p_two_battery_text , sizeof(s_p_two_battery_text));
@@ -541,14 +730,23 @@ static void prv_window_load(Window *window) {
   }
   updateTimeAgo(1);
 
-  // add dateTime to holder
+  // add time ago to holder
 	layer_add_child(s_person_two_holder_layer, text_layer_get_layer(s_p_two_time_ago_text_layer));
 
   //add person holding layer to root window
   layer_add_child(window_layer, s_person_two_holder_layer);
 
+  //build clear graph layer
+  s_person_two_graph_layer = layer_create(person_two_holder_bounds);
+  layer_set_update_proc(s_person_two_graph_layer, person_two_draw_graph_update_proc);
+	layer_add_child(window_layer, s_person_two_graph_layer);
+
   // Register with TickTimerService
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+
+  //register with tap handler service
+  accel_tap_service_subscribe(accel_tap_handler);
+
 
   //update the time when the watchface loads
   update_time();
