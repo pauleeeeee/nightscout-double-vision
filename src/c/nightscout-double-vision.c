@@ -97,7 +97,7 @@ VibePattern bum = {
 };
 
 static void sendAlert(int alert) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "switching alert %d", alert);
+  // APP_LOG(APP_LOG_LEVEL_DEBUG, "switching alert %d", alert);
   switch(alert){
     case 0:
       // APP_LOG(APP_LOG_LEVEL_DEBUG, "no alert %d", alert);
@@ -223,7 +223,7 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
 
   //update values of the watchface. I think making a People array that holds all this stuff would make way more sense.
   if (CurrentPerson == 0){
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "receiving data for person %d", 0);
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "receiving data for person %d", 0);
 
     if (person_name_tuple) {
       //copy value to outside variable
@@ -293,7 +293,7 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
 
 
   } else if (CurrentPerson == 1){
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "receiving data for person %d", 1);
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "receiving data for person %d", 1);
 
     if (person_name_tuple) {
       strncpy(s_p_two_name_text, person_name_tuple->value->cstring, sizeof(s_p_two_name_text));
@@ -383,7 +383,7 @@ static void in_dropped_handler(AppMessageResult reason, void *context){
 }
 
 static void person_one_draw_graph_update_proc(Layer *layer, GContext *ctx){
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "graphing data for person %d", 0);
+  // APP_LOG(APP_LOG_LEVEL_DEBUG, "graphing data for person %d", 0);
 
   GRect bounds = layer_get_bounds(layer);
 
@@ -404,7 +404,7 @@ static void person_one_draw_graph_update_proc(Layer *layer, GContext *ctx){
 }
 
 static void person_two_draw_graph_update_proc(Layer *layer, GContext *ctx){
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "graphing data for person %d", 1);
+  // APP_LOG(APP_LOG_LEVEL_DEBUG, "graphing data for person %d", 1);
 
   GRect bounds = layer_get_bounds(layer);
 
@@ -778,7 +778,6 @@ static void prv_window_load(Window *window) {
   //register with tap handler service
   accel_tap_service_subscribe(accel_tap_handler);
 
-
   //update the time when the watchface loads
   update_time();
 
@@ -806,7 +805,8 @@ static void prv_window_unload(Window *window) {
   battery_bar_layer_destroy(s_battery_layer);
   layer_destroy(s_person_one_holder_layer);
   layer_destroy(s_person_two_holder_layer);
-
+  layer_destroy(s_person_one_graph_layer);
+  layer_destroy(s_person_two_graph_layer);
 
 }
 
