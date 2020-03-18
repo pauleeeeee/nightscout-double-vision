@@ -128,7 +128,7 @@ function fetchLoop(){
 function fetchGraphData(id, url){
     //open request
     var req = new XMLHttpRequest();
-    req.open('GET', url + "/api/v1/entries.json?count=150", true);
+    req.open('GET', url + "/api/v1/entries.json?count=" + storedSettings.GraphTimeScale.value, true);
     req.onload = function(e) {
         if (req.readyState == 4) {
           // 200 - HTTP OK
@@ -136,18 +136,22 @@ function fetchGraphData(id, url){
                 var entries = JSON.parse(req.responseText);
                 entries.reverse();
                 var graphData = [];
+                var offset = 270;
+                var correction = 10;
                 for (let entry of entries) {
                     graphData.push({
                         time: Math.round(((entry.date - entries[0].date) / 1000 / 60)),
-                        sgv: 300-entry.sgv
+                        sgv: offset-entry.sgv
                     });
                 }
+
+                // console.log(JSON.stringify(entries));
                 
                 var sampled = largestTriangleThreeBuckets(graphData, 20, "time", "sgv");
+                console.log(JSON.stringify(sampled));
 
                 var xscale = 144 / sampled[sampled.length-1].time;
-
-                var yscale = 72 / 280;
+                var yscale = 72 / offset;
 
 
                 let xbuffer = new ArrayBuffer(40);
@@ -157,7 +161,7 @@ function fetchGraphData(id, url){
 
                 for (let i = 0; i < 20; i++) {
                     xview16[i] = Math.round(sampled[i].time * xscale);
-                    yview16[i] = Math.round(sampled[i].sgv * yscale);
+                    yview16[i] = Math.round(sampled[i].sgv * yscale) + correction;
                 }
 
                 let xview8 = new Uint8Array(xbuffer);
@@ -165,6 +169,8 @@ function fetchGraphData(id, url){
 
                 let sendingObject = {
                     "PersonID": id,
+                    "GraphHighPoint": Math.round((offset - storedSettings.HighAlertValue.value) * yscale) + correction,
+                    "GraphLowPoint": Math.round((offset - storedSettings.LowAlertValue.value) * yscale) + correction,
                     "GraphXPoints": Array.from(xview8),
                     "GraphYPoints": Array.from(yview8)
                 };

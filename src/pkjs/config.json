@@ -24,7 +24,7 @@
                 "type":"input",
                 "messageKey":"FirstPersonURL",
                 "label":"URL one",
-                "description":"enter the URL to the pebble endpoint of the nightscout webapp of the first person; ie: http://*****.herokuapp.com/pebble/"
+                "description":"enter the URL to the nightscout webapp of the first person without the trailing '/' ie: http://*****.herokuapp.com"
             },
             {
                 "type":"input",
@@ -36,7 +36,7 @@
                 "type":"input",
                 "messageKey":"SecondPersonURL",
                 "label":"URL two",
-                "description":"enter the URL to the pebble endpoint of the nightscout webapp of the second person; ie: http://*****.herokuapp.com/pebble/"
+                "description":"enter the URL to the nightscout webapp of the second person without the trailing '/' ie: http://*****.herokuapp.com"
             }
         ]
     },
@@ -180,6 +180,25 @@
                       "value": "7"
                   }
                 ]
+            }
+        ]
+    },
+    {
+        "type":"section",
+        "items":[
+            {
+                "type":"heading",
+                "defaultValue":"graphs"
+            },{
+                "type":"slider",
+                "label":"number of entries",
+                "defaultValue":"40",
+                "min":"20",
+                "max":"150",
+                "step":"10",
+                "description":"This defines the timescale of the graph. How often does Nightscout record a SGV reading? Multiply the time interval by the number of entries selected here. This is the time scale of the graph. For example, if you get updates every 5 minutes and you select 40 entries, 40 * 5 = 200 minutes. So the last 3 hours and 20 minutes of data will be graphed.",
+                "messageKey":"GraphTimeScale"
+
             }
         ]
     },
