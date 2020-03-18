@@ -148,7 +148,7 @@ function fetchGraphData(id, url){
                 // console.log(JSON.stringify(entries));
                 
                 var sampled = largestTriangleThreeBuckets(graphData, 20, "time", "sgv");
-                console.log(JSON.stringify(sampled));
+                // console.log(JSON.stringify(sampled));
 
                 var xscale = 144 / sampled[sampled.length-1].time;
                 var yscale = 72 / offset;
