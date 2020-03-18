@@ -1,9 +1,11 @@
 {
   "name": "nightscout-double-vision",
   "author": "swansswansswansswansosoft",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "keywords": [
-    "pebble-app"
+    "pebble-app",
+    "watchface",
+    "nightscout"
   ],
   "private": true,
   "dependencies": {
