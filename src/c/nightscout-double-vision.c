@@ -29,7 +29,9 @@ static bool s_person_two_graph_should_draw = false;
 static uint16_t s_person_two_x_points[20];
 static uint16_t s_person_two_y_points[20];
 
-
+//generic graph stuff
+static int s_graph_high_point = 0;
+static int s_graph_low_point = 0;
 
 static void updateTimeAgo(int person_id){
   if (person_id == 0){
@@ -139,16 +141,16 @@ static void tap_timer_callback(){
 
 // handle accel event
 static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
-  if (axis == ACCEL_AXIS_Z){
+  if (axis == ACCEL_AXIS_Y){
     if(tap_count == 0) {
       // Schedule the timer
-      app_timer_register(1200, tap_timer_callback, NULL);
+      app_timer_register(2000, tap_timer_callback, NULL);
     }
     tap_count++;
     // snprintf(display_tap_count_text, sizeof(display_tap_count_text), "%d", tap_count);
     // text_layer_set_text(s_tap_count_layer, display_tap_count_text);
 
-    if(tap_count == 3){
+    if(tap_count == 2){
       tap_count = 0;
       vibes_short_pulse();
       int ok = 1;
@@ -158,6 +160,15 @@ static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
       app_message_outbox_send();
     }
   }
+
+  // vibes_short_pulse();
+  // int ok = 1;
+  // DictionaryIterator *iter;
+  // app_message_outbox_begin(&iter);
+  // dict_write_int(iter, GetGraphs, &ok, sizeof(int), false);
+  // app_message_outbox_send();
+
+
 }
 
 //this function is called every time the pebble ticks a minute
@@ -190,8 +201,8 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
   Tuple *minutes_ago_tuple = dict_find (iter, MinutesAgo);
   Tuple *respect_quiet_time_tuple = dict_find (iter, RespectQuietTime);
   Tuple *send_alert_tuple = dict_find(iter, SendAlert);
-  // Tuple *graph_x_point_tuple = dict_find(iter, GraphXPoint);
-  // Tuple *graph_y_point_tuple = dict_find(iter, GraphYPoint);
+  Tuple *graph_high_point_tuple = dict_find(iter, GraphHighPoint);
+  Tuple *graph_low_point_tuple = dict_find(iter, GraphLowPoint);
   Tuple *graph_x_points_tuple = dict_find(iter, GraphXPoints);
   Tuple *graph_y_points_tuple = dict_find(iter, GraphYPoints);
   // Tuple *graph_start_stop_tuple = dict_find(iter, GraphStartStop);
@@ -200,6 +211,15 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
   if (person_id_tuple) {
     CurrentPerson = person_id_tuple->value->int32;
   }
+
+  if (graph_high_point_tuple) {
+    s_graph_high_point = graph_high_point_tuple->value->int32;
+  }
+
+  if (graph_low_point_tuple) {
+    s_graph_low_point = graph_low_point_tuple->value->int32;
+  }
+
 
   //update values of the watchface. I think making a People array that holds all this stuff would make way more sense.
   if (CurrentPerson == 0){
@@ -305,6 +325,7 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
       text_layer_set_text(s_p_two_battery_text_layer, s_p_two_battery_text);
     }
 
+
     if (direction_tuple) {
       persist_write_int(16, direction_tuple->value->int32);
       if (s_p_two_icon_bitmap) {
@@ -334,7 +355,6 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
 
   }
 
-
   //alerts
   if (respect_quiet_time_tuple) {
     s_respect_quiet_time = respect_quiet_time_tuple->value->int32;
@@ -354,6 +374,7 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
     }
   }
 
+
 }
 
 
@@ -364,10 +385,15 @@ static void in_dropped_handler(AppMessageResult reason, void *context){
 static void person_one_draw_graph_update_proc(Layer *layer, GContext *ctx){
   APP_LOG(APP_LOG_LEVEL_DEBUG, "graphing data for person %d", 0);
 
+  GRect bounds = layer_get_bounds(layer);
+
   graphics_context_set_stroke_color(ctx, GColorDarkGray);
-  graphics_context_set_stroke_width(ctx, 3);
 
   if (s_person_one_graph_should_draw){
+    graphics_context_set_stroke_width(ctx, 1);
+    graphics_draw_line(ctx, GPoint(0, s_graph_high_point), GPoint(bounds.size.w, s_graph_high_point));
+    graphics_draw_line(ctx, GPoint(0, s_graph_low_point), GPoint(bounds.size.w, s_graph_low_point));
+    graphics_context_set_stroke_width(ctx, 3);
     for (int i = 0; i < 20; i++){
       if (i < 19){
         graphics_draw_line(ctx, GPoint(s_person_one_x_points[i], s_person_one_y_points[i]), GPoint(s_person_one_x_points[i+1], s_person_one_y_points[i+1]));
@@ -380,10 +406,15 @@ static void person_one_draw_graph_update_proc(Layer *layer, GContext *ctx){
 static void person_two_draw_graph_update_proc(Layer *layer, GContext *ctx){
   APP_LOG(APP_LOG_LEVEL_DEBUG, "graphing data for person %d", 1);
 
+  GRect bounds = layer_get_bounds(layer);
+
   graphics_context_set_stroke_color(ctx, GColorDarkGray);
-  graphics_context_set_stroke_width(ctx, 3);
 
   if (s_person_two_graph_should_draw){
+    graphics_context_set_stroke_width(ctx, 1);
+    graphics_draw_line(ctx, GPoint(0, s_graph_high_point), GPoint(bounds.size.w, s_graph_high_point));
+    graphics_draw_line(ctx, GPoint(0, s_graph_low_point), GPoint(bounds.size.w, s_graph_low_point));
+    graphics_context_set_stroke_width(ctx, 3);
     for (int i = 0; i < 20; i++){
       if (i < 19){
         graphics_draw_line(ctx, GPoint(s_person_two_x_points[i], s_person_two_y_points[i]), GPoint(s_person_two_x_points[i+1], s_person_two_y_points[i+1]));

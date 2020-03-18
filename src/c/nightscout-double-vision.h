@@ -10,12 +10,13 @@
 #define Battery 5
 #define Direction 6
 #define MinutesAgo 7
-#define GraphXPoint 10
-#define GraphYPoint 11
+#define GraphHighPoint 10
+#define GraphLowPoint 11
 #define GraphXPoints 110
 #define GraphYPoints 111
 #define GraphStartStop 12
 #define GetGraphs 13
+#define GraphTimeScale 14
 #define IntervalTime 50
 #define EnableAlerts 51
 #define RespectQuietTime 52
