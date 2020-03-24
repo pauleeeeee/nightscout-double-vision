@@ -54,7 +54,7 @@ static void update_time() {
 
   // Write the current hours and minutes into a buffer
   static char s_buffer[16];
-  strftime(s_buffer, sizeof(s_buffer), "%l:%M %P", tick_time);
+  strftime(s_buffer, sizeof(s_buffer), "%l:%M %p", tick_time);
 
   // Display this time on the TextLayer
   text_layer_set_text(s_time_layer, s_buffer);
@@ -141,7 +141,7 @@ static void tap_timer_callback(){
 
 // handle accel event
 static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
-  if (axis == ACCEL_AXIS_Y){
+  if (axis == ACCEL_AXIS_Y && !quiet_time_is_active()){
     if(tap_count == 0) {
       // Schedule the timer
       app_timer_register(2000, tap_timer_callback, NULL);
@@ -464,11 +464,11 @@ static void prv_window_load(Window *window) {
   GRect bounds = layer_get_bounds(window_layer);
 
   //create time text layer
-  s_time_layer = text_layer_create(GRect(0,(bounds.size.h/2)-12,bounds.size.w,24));
+  s_time_layer = text_layer_create(GRect(0,(bounds.size.h/2)-19,bounds.size.w,28));
   text_layer_set_background_color(s_time_layer, GColorBlack);
   text_layer_set_text(s_time_layer, "00:00 AM");
   text_layer_set_text_color(s_time_layer, GColorWhite);
-  text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
   text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
   
@@ -592,7 +592,7 @@ static void prv_window_load(Window *window) {
   if(persist_exists(4)){
     persist_read_string(4, s_p_one_iob_text , sizeof(s_p_one_iob_text));
   } else {
-    strncpy(s_p_one_iob_text, "-0.00", sizeof(s_p_one_iob_text));
+    strncpy(s_p_one_iob_text, "-0.00u", sizeof(s_p_one_iob_text));
   }
   text_layer_set_text(s_p_one_iob_text_layer, s_p_one_iob_text);
   //add iob to holder
@@ -608,7 +608,7 @@ static void prv_window_load(Window *window) {
   if(persist_exists(5)){
     persist_read_string(5, s_p_one_battery_text , sizeof(s_p_one_battery_text));
   } else {
-    strncpy(s_p_one_battery_text, "%000", sizeof(s_p_one_battery_text));
+    strncpy(s_p_one_battery_text, "000%", sizeof(s_p_one_battery_text));
   }
   text_layer_set_text(s_p_one_battery_text_layer, s_p_one_battery_text);
   // add battery to holder
@@ -724,7 +724,7 @@ static void prv_window_load(Window *window) {
   if(persist_exists(14)){
     persist_read_string(14, s_p_two_iob_text , sizeof(s_p_two_iob_text));
   } else {
-    strncpy(s_p_two_iob_text, "-0.00", sizeof(s_p_two_iob_text));
+    strncpy(s_p_two_iob_text, "-0.00u", sizeof(s_p_two_iob_text));
   }
   text_layer_set_text(s_p_two_iob_text_layer, s_p_two_iob_text);
   //add iob to holder
@@ -741,7 +741,7 @@ static void prv_window_load(Window *window) {
   if(persist_exists(15)){
     persist_read_string(15, s_p_two_battery_text , sizeof(s_p_two_battery_text));
   } else {
-    strncpy(s_p_two_battery_text, "%000", sizeof(s_p_two_battery_text));
+    strncpy(s_p_two_battery_text, "000%", sizeof(s_p_two_battery_text));
   }
   text_layer_set_text(s_p_two_battery_text_layer, s_p_two_battery_text);
   // add battery to holder
