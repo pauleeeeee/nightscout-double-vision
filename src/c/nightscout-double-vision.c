@@ -18,6 +18,7 @@ static GBitmap *s_p_two_icon_bitmap = NULL;
 static BitmapLayer *s_p_one_icon_layer, *s_p_two_icon_layer;
 static int CurrentPerson = 0;
 static int s_respect_quiet_time = 0;
+static int s_show_time_window_on_shake = 0;
 
 //person one graph stuff
 static bool s_person_one_graph_should_draw = false;
@@ -47,17 +48,23 @@ static void updateTimeAgo(int person_id){
   }
 }
 
+static char s_time[16];
+static char full_date_text[] = "Xxx -----";
+
 static void update_time() {
   // Get a tm structure
   time_t temp = time(NULL);
   struct tm *tick_time = localtime(&temp);
 
   // Write the current hours and minutes into a buffer
-  static char s_buffer[16];
-  strftime(s_buffer, sizeof(s_buffer), "%l:%M %p", tick_time);
+  strftime(s_time, sizeof(s_time), "%l:%M %p", tick_time);
 
   // Display this time on the TextLayer
-  text_layer_set_text(s_time_layer, s_buffer);
+  text_layer_set_text(s_time_layer, s_time);
+
+  //date
+  strftime(full_date_text, sizeof(full_date_text), "%a %m/%d", tick_time);
+
 
   //each minute that goes by... increase ago ints
   s_p_one_ago_int++;
@@ -139,6 +146,40 @@ static void tap_timer_callback(){
   // text_layer_set_text(s_tap_count_layer, display_tap_count_text);
 }
 
+static Layer *s_time_window;
+
+static void remove_time_window(){
+  layer_destroy(s_time_window);
+}
+
+static void time_window_update_proc(Layer *layer, GContext *ctx){
+  GRect bounds = layer_get_bounds(layer);
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_fill_rect(ctx, bounds, 5, GCornersAll);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_context_set_stroke_width(ctx, 2);
+  graphics_draw_round_rect(ctx, bounds, 5);
+  graphics_context_set_text_color(ctx, GColorBlack);
+  bounds.size.w +=30;
+  bounds.origin.x -= 15;
+  graphics_draw_text(ctx, s_time, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD), bounds, GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
+  bounds.origin.y+=85;
+  graphics_draw_text(ctx, full_date_text, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD), bounds, GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
+
+}
+
+static void push_time_window() {
+  GRect bounds = layer_get_bounds(window_get_root_layer(s_window));
+  bounds.origin.x += 5;
+  bounds.origin.y += 5;
+  bounds.size.h -= 10;
+  bounds.size.w -= 10;
+  s_time_window = layer_create(bounds);
+  layer_set_update_proc(s_time_window, time_window_update_proc);
+  layer_add_child(window_get_root_layer(s_window), s_time_window);
+  app_timer_register(4000, remove_time_window, NULL);
+}
+
 // handle accel event
 static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
   if (axis == ACCEL_AXIS_Y && !quiet_time_is_active()){
@@ -153,12 +194,17 @@ static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
     if(tap_count == 2){
       tap_count = 0;
       vibes_short_pulse();
+      if (s_show_time_window_on_shake) {
+        push_time_window();
+      }
       int ok = 1;
       DictionaryIterator *iter;
       app_message_outbox_begin(&iter);
       dict_write_int(iter, GetGraphs, &ok, sizeof(int), false);
       app_message_outbox_send();
     }
+
+
   }
 
   // vibes_short_pulse();
@@ -200,6 +246,7 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
   Tuple *direction_tuple = dict_find (iter, Direction);
   Tuple *minutes_ago_tuple = dict_find (iter, MinutesAgo);
   Tuple *respect_quiet_time_tuple = dict_find (iter, RespectQuietTime);
+  Tuple *show_time_window_on_shake_tuple = dict_find (iter, ShowTimeWindowOnShake);
   Tuple *send_alert_tuple = dict_find(iter, SendAlert);
   Tuple *graph_high_point_tuple = dict_find(iter, GraphHighPoint);
   Tuple *graph_low_point_tuple = dict_find(iter, GraphLowPoint);
@@ -361,6 +408,11 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
     persist_write_int(52, s_respect_quiet_time);
   }
 
+  if (show_time_window_on_shake_tuple) {
+    s_show_time_window_on_shake = show_time_window_on_shake_tuple->value->int32;
+    persist_write_int(ShowTimeWindowOnShake, s_show_time_window_on_shake);
+  }
+
   if (send_alert_tuple) {
 
     int alert = send_alert_tuple->value->int32;
@@ -499,6 +551,7 @@ static void prv_window_load(Window *window) {
 
   //recall respect quiet time value; 0 or 1;
   s_respect_quiet_time = persist_read_int(52);
+
 
 
   //***********************************

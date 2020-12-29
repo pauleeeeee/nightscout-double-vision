@@ -1,7 +1,7 @@
 {
   "name": "nightscout-double-vision",
   "author": "swansswansswansswansosoft",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "keywords": [
     "pebble-app",
     "watchface",
@@ -53,6 +53,7 @@
       "HighAlertValue": 54,
       "LowSnoozeTimeout": 55,
       "HighSnoozeTimeout": 56,
+      "ShowTimeWindowOnShake": 57,
       "SendAlert": 60
     },
     "resources": {

@@ -62,6 +62,13 @@
                 "defaultValue": true
             },
             {
+                "type": "toggle",
+                "messageKey": "ShowTimeWindowOnShake",
+                "label": "Show bigger time on shake",
+                "description": "Show a popup that has bigger time / date when you shake (4 seconds)",
+                "defaultValue": false
+            },
+            {
                 "type":"heading",
                 "defaultValue":"low"
             },

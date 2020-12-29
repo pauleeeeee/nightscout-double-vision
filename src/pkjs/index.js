@@ -67,6 +67,11 @@ Pebble.addEventListener('webviewclosed', function(e) {
         },1000)
     }
 
+    Pebble.sendAppMessage({
+        "RespectQuietTime": (storedSettings.RespectQuietTime.value ? 1: 0),
+        "ShowTimeWindowOnShake": (storedSettings.ShowTimeWindowOnShake.value ? 1: 0)
+    })
+
 
 });
 
@@ -216,7 +221,8 @@ function fetchNightscoutData(id, personData, url){
                         "Direction": directionStringToInt(response.bgs[0].direction),
                         "MinutesAgo": Math.round((response.status[0].now - response.bgs[0].datetime) / 1000 / 60),
                         "SendAlert": makeAlert(id, response.bgs[0].sgv),
-                        "RespectQuietTime": (storedSettings.RespectQuietTime.value ? 1: 0)
+                        "RespectQuietTime": (storedSettings.RespectQuietTime.value ? 1: 0),
+                        "ShowTimeWindowOnShake": (storedSettings.ShowTimeWindowOnShake.value ? 1: 0)
                     };
 
                     // console.log(JSON.stringify(message));

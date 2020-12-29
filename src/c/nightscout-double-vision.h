@@ -24,6 +24,7 @@
 #define HighAlertValue 54
 #define LowSnoozeTimeout 55
 #define HighSnoozeTimeout 56
+#define ShowTimeWindowOnShake 57
 #define SendAlert 60
 
 //declare reousrce IDs in this array for easy access when drawing bitmap arrows
