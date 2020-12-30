@@ -149,6 +149,7 @@ static void tap_timer_callback(){
 static Layer *s_time_window;
 
 static void remove_time_window(){
+  layer_remove_from_parent(s_time_window);
   layer_destroy(s_time_window);
 }
 
@@ -160,8 +161,6 @@ static void time_window_update_proc(Layer *layer, GContext *ctx){
   graphics_context_set_stroke_width(ctx, 2);
   graphics_draw_round_rect(ctx, bounds, 5);
   graphics_context_set_text_color(ctx, GColorBlack);
-  bounds.size.w +=30;
-  bounds.origin.x -= 15;
   graphics_draw_text(ctx, s_time, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD), bounds, GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
   bounds.origin.y+=85;
   graphics_draw_text(ctx, full_date_text, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD), bounds, GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
@@ -176,7 +175,8 @@ static void push_time_window() {
   bounds.size.w -= 10;
   s_time_window = layer_create(bounds);
   layer_set_update_proc(s_time_window, time_window_update_proc);
-  layer_add_child(window_get_root_layer(s_window), s_time_window);
+  Layer *root_layer = window_get_root_layer(s_window);
+  layer_add_child(root_layer, s_time_window);
   app_timer_register(4000, remove_time_window, NULL);
 }
 
@@ -203,7 +203,6 @@ static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
       dict_write_int(iter, GetGraphs, &ok, sizeof(int), false);
       app_message_outbox_send();
     }
-
 
   }
 
@@ -551,6 +550,9 @@ static void prv_window_load(Window *window) {
 
   //recall respect quiet time value; 0 or 1;
   s_respect_quiet_time = persist_read_int(52);
+  if(persist_exists(ShowTimeWindowOnShake)) {
+    s_show_time_window_on_shake = persist_read_int(ShowTimeWindowOnShake);
+  }
 
 
 
