@@ -45,7 +45,35 @@
         "items":[
             {
                 "type":"heading",
-                "defaultValue":"alerts"
+                "defaultValue":"alerts and features"
+            },
+            {
+                "type": "toggle",
+                "messageKey": "ShowTimeWindowOnShake",
+                "label": "Show bigger time on shake",
+                "description": "Show a popup that has bigger time / date when you shake (4 seconds)",
+                "defaultValue": false
+            },
+            {
+                "type": "select",
+                "messageKey": "ShakeSensitivity",
+                "defaultValue": 3,
+                "label": "Shake sensitivity",
+                "description": "When you shake your wrist to call graphs or to show time window - how easy should it be?",
+                "options": [
+                  { 
+                    "label": "easy", 
+                    "value": 3 
+                  },
+                  { 
+                    "label": "medium",
+                    "value": 4 
+                  },
+                  { 
+                    "label": "hard",
+                    "value": 5 
+                  }
+                ]
             },
             {
                 "type": "toggle",
@@ -60,13 +88,6 @@
                 "label": "Respect Pebble's 'Quiet Time'",
                 "description": "alerts are supressed when Quiet Time is active on the Pebble",
                 "defaultValue": true
-            },
-            {
-                "type": "toggle",
-                "messageKey": "ShowTimeWindowOnShake",
-                "label": "Show bigger time on shake",
-                "description": "Show a popup that has bigger time / date when you shake (4 seconds)",
-                "defaultValue": false
             },
             {
                 "type":"heading",

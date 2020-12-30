@@ -69,7 +69,8 @@ Pebble.addEventListener('webviewclosed', function(e) {
 
     Pebble.sendAppMessage({
         "RespectQuietTime": (storedSettings.RespectQuietTime.value ? 1: 0),
-        "ShowTimeWindowOnShake": (storedSettings.ShowTimeWindowOnShake.value ? 1: 0)
+        "ShowTimeWindowOnShake": (storedSettings.ShowTimeWindowOnShake.value ? 1: 0),
+        "ShakeSensitivity": storedSettings.ShakeSensitivity.value
     })
 
 

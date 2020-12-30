@@ -54,6 +54,7 @@
       "LowSnoozeTimeout": 55,
       "HighSnoozeTimeout": 56,
       "ShowTimeWindowOnShake": 57,
+      "ShakeSensitivity": 58,
       "SendAlert": 60
     },
     "resources": {

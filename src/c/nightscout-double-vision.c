@@ -19,6 +19,7 @@ static BitmapLayer *s_p_one_icon_layer, *s_p_two_icon_layer;
 static int CurrentPerson = 0;
 static int s_respect_quiet_time = 0;
 static int s_show_time_window_on_shake = 0;
+static int s_shake_sensitivity = 3;
 
 //person one graph stuff
 static bool s_person_one_graph_should_draw = false;
@@ -182,7 +183,7 @@ static void push_time_window() {
 
 // handle accel event
 static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
-  if (axis == ACCEL_AXIS_Y && !quiet_time_is_active()){
+  if ((axis == ACCEL_AXIS_Y || ACCEL_AXIS_Z) && !quiet_time_is_active()){
     if(tap_count == 0) {
       // Schedule the timer
       app_timer_register(2000, tap_timer_callback, NULL);
@@ -191,7 +192,7 @@ static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
     // snprintf(display_tap_count_text, sizeof(display_tap_count_text), "%d", tap_count);
     // text_layer_set_text(s_tap_count_layer, display_tap_count_text);
 
-    if(tap_count == 2){
+    if(tap_count == s_shake_sensitivity){
       tap_count = 0;
       vibes_short_pulse();
       if (s_show_time_window_on_shake) {
@@ -251,6 +252,8 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
   Tuple *graph_low_point_tuple = dict_find(iter, GraphLowPoint);
   Tuple *graph_x_points_tuple = dict_find(iter, GraphXPoints);
   Tuple *graph_y_points_tuple = dict_find(iter, GraphYPoints);
+  Tuple *shake_sensitivity_tuple = dict_find(iter, ShakeSensitivity);
+
   // Tuple *graph_start_stop_tuple = dict_find(iter, GraphStartStop);
 
   //assign current person to an int. It's important to pipe data from within this function to stable, outside variables. Otherwise data could be lost as a new appmessage comes in
@@ -412,8 +415,12 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
     persist_write_int(ShowTimeWindowOnShake, s_show_time_window_on_shake);
   }
 
-  if (send_alert_tuple) {
+  if (shake_sensitivity_tuple) {
+    s_shake_sensitivity = shake_sensitivity_tuple->value->int32;
+    persist_write_int(ShakeSensitivity, s_shake_sensitivity);
+  }
 
+  if (send_alert_tuple) {
     int alert = send_alert_tuple->value->int32;
     // APP_LOG(APP_LOG_LEVEL_DEBUG, "alert received in tuple %d", alert);
     if (quiet_time_is_active() && s_respect_quiet_time) { 
@@ -553,6 +560,11 @@ static void prv_window_load(Window *window) {
   if(persist_exists(ShowTimeWindowOnShake)) {
     s_show_time_window_on_shake = persist_read_int(ShowTimeWindowOnShake);
   }
+  if(persist_exists(ShakeSensitivity)) {
+    s_shake_sensitivity = persist_read_int(ShakeSensitivity);
+  }
+
+
 
 
 
