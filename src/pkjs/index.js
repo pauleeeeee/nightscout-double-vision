@@ -45,7 +45,7 @@ Pebble.addEventListener('webviewclosed', function(e) {
     storedSettings = clay.getSettings(e.response, false);
     //save the settings directly to local storage.
     localStorage.setItem("storedSettings", JSON.stringify(storedSettings));
-    // console.log(JSON.stringify(storedSettings));
+    //console.log(JSON.stringify(storedSettings));
 
     if (storedSettings.FirstPersonName.value && storedSettings.FirstPersonName.value != "") {
         // console.log('sending app message');
@@ -70,7 +70,7 @@ Pebble.addEventListener('webviewclosed', function(e) {
     Pebble.sendAppMessage({
         "RespectQuietTime": (storedSettings.RespectQuietTime.value ? 1: 0),
         "ShowTimeWindowOnShake": (storedSettings.ShowTimeWindowOnShake.value ? 1: 0),
-        "ShakeSensitivity": storedSettings.ShakeSensitivity.value
+        "ShakeSensitivity": Number(storedSettings.ShakeSensitivity.value)
     })
 
 

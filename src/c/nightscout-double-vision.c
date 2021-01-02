@@ -20,6 +20,7 @@ static int CurrentPerson = 0;
 static int s_respect_quiet_time = 0;
 static int s_show_time_window_on_shake = 0;
 static int s_shake_sensitivity = 3;
+static GTextAttributes *s_text_attributes;
 
 //person one graph stuff
 static bool s_person_one_graph_should_draw = false;
@@ -162,10 +163,9 @@ static void time_window_update_proc(Layer *layer, GContext *ctx){
   graphics_context_set_stroke_width(ctx, 2);
   graphics_draw_round_rect(ctx, bounds, 5);
   graphics_context_set_text_color(ctx, GColorBlack);
-  graphics_draw_text(ctx, s_time, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD), bounds, GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
+  graphics_draw_text(ctx, s_time, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD), bounds, GTextOverflowModeWordWrap, GTextAlignmentCenter, s_text_attributes);
   bounds.origin.y+=85;
-  graphics_draw_text(ctx, full_date_text, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD), bounds, GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
-
+  graphics_draw_text(ctx, full_date_text, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD), bounds, GTextOverflowModeWordWrap, GTextAlignmentCenter, s_text_attributes);
 }
 
 static void push_time_window() {
@@ -183,7 +183,7 @@ static void push_time_window() {
 
 // handle accel event
 static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
-  if ((axis == ACCEL_AXIS_Y || ACCEL_AXIS_Z) && !quiet_time_is_active()){
+  if ((axis == ACCEL_AXIS_Y || axis == ACCEL_AXIS_Z) && !quiet_time_is_active()){
     if(tap_count == 0) {
       // Schedule the timer
       app_timer_register(2000, tap_timer_callback, NULL);
@@ -191,6 +191,8 @@ static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
     tap_count++;
     // snprintf(display_tap_count_text, sizeof(display_tap_count_text), "%d", tap_count);
     // text_layer_set_text(s_tap_count_layer, display_tap_count_text);
+    //APP_LOG(APP_LOG_LEVEL_DEBUG, "tap number %d", tap_count);
+
 
     if(tap_count == s_shake_sensitivity){
       tap_count = 0;
@@ -520,6 +522,8 @@ static void person_two_update_proc(Layer *layer, GContext *ctx) {
 static void prv_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
+
+  s_text_attributes = graphics_text_attributes_create();
 
   //create time text layer
   s_time_layer = text_layer_create(GRect(0,(bounds.size.h/2)-19,bounds.size.w,28));

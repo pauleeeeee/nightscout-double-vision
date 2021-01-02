@@ -61,18 +61,18 @@
                 "label": "Shake sensitivity",
                 "description": "When you shake your wrist to call graphs or to show time window - how easy should it be?",
                 "options": [
-                  { 
-                    "label": "easy", 
-                    "value": 3 
-                  },
-                  { 
-                    "label": "medium",
-                    "value": 4 
-                  },
-                  { 
-                    "label": "hard",
-                    "value": 5 
-                  }
+                    { 
+                        "label": "easy", 
+                        "value": 3 
+                    },
+                    { 
+                        "label": "medium",
+                        "value": 4 
+                    },
+                    { 
+                        "label": "hard",
+                        "value": 5 
+                    }
                 ]
             },
             {
